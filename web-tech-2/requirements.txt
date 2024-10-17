@@ -1,2 +1,7 @@
 uvicorn
 fastapi
+sqlalchemy
+databases
+asyncpg
+psycopg2
+bcrypt

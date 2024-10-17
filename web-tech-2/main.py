@@ -1,21 +1,12 @@
 from fastapi import FastAPI
 from databases import Database
 import sclalchemy
+from handlers import users_handler
+from schemas.user import UserCreate,UserUpdate
+from database import metadata, engine, database
+from models import users
+from models.Users import UserRole
 
-DATABASE_URL = 'postgresql://user:1234@localhost:5423/database'
-
-database = Database(DATABASE_URL)
-metadata = sqlalchemy.MetaData()
-
-users = sqlalchemy.Table(
-    "users", 
-    metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column("name", sqlalchemy.String(length=100)),
-    sqlalchemy.Column("email", sqlalchemy.String(length=100), unique=True),
-)
-
-engine = sqlalchemy.create_engine(DATABASE_URL)
 metadata.create_all(engine)
 
 app = FastAPI()
@@ -35,20 +26,16 @@ async def read_users():
 
 @app.post("/users/")
 async def creat_users(name: str, email: str):
-    query = users.insert().values(name=name, email=email)
-    await database.execute(query)
-    return {"name": name, "email": email}
+        return await users_handler.read_users(database)
 
-@app.post("/books/")
-async def creat_users(name: str, email: str):
-    query = users.insert().values(name=name, email=email)
-    await database.execute(query)
-    return {"name": name, "email": email}
+@app.post("/users/")
+async def create_user(user: UserCreate, role: UserRole):
+    return await users_handler.create_user(user,database)
 
-#@app.get("/")
-#async def root():
-    #return {"message": "Hi, three!"}
+@app.delete("/users/")
+async def delete_user(email: str):
+    return await users_handler.delete_user(email, database)
 
-
-# py -m pip install -r .\requirements.txt
-# python -m uvicorn main:app --reload
+@app.put("/users/")
+async def update_user(user: UserUpdate):
+    return await users_handler.update_user(user, database)
