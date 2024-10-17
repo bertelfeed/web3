@@ -5,3 +5,8 @@ databases
 asyncpg
 psycopg2
 bcrypt
+python-jose
+python-dotenv
+jwt
+pyjwt
+pyJWT
