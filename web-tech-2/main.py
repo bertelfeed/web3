@@ -1,11 +1,11 @@
-from fastapi import FastAPI
-from databases import Database
-import sclalchemy
-from handlers import users_handler
-from schemas.user import UserCreate,UserUpdate, UserAuthorize
+from fastapi import FastAPI, Depends
+from handlers import users_handler, books_handler
+from schemas.user import UserCreate,UserUpdate,UserAuthorize
 from database import metadata, engine, database
 from models import users
 from models.Users import UserRole
+from fastapi import Form, File, UploadFile
+from utils.token import validate_token_and_role
 
 metadata.create_all(engine)
 
@@ -14,23 +14,18 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup():
     await database.connect()
-
+    
 @app.on_event("shutdown")
 async def shutdown():
-    await database.disconnect()   
+    await database.disconnect()
 
 @app.get("/users/")
 async def read_users():
-    query = users.select()
-    return await database.fetch_all(query)    
-
-@app.post("/users/")
-async def creat_users(name: str, email: str):
-        return await users_handler.read_users(database,role)
+    return await users_handler.read_users(database)
 
 @app.post("/users/")
 async def create_user(user: UserCreate, role: UserRole):
-    return await users_handler.create_user(user,database)
+    return await users_handler.create_user(user, database, role)
 
 @app.delete("/users/")
 async def delete_user(email: str):
@@ -38,7 +33,55 @@ async def delete_user(email: str):
 
 @app.put("/users/")
 async def update_user(user: UserUpdate):
-   return await users_handler.update_user(user, database)
+    return await users_handler.update_user(user, database)
+
 @app.put("/users/authorize/")
 async def authorize_user(user: UserAuthorize):
     return await users_handler.authorize_user(user, database)
+
+@app.get("/with-credentials")
+async def check_credentials(user = Depends(validate_token_and_role([ "user", "admin"]))):
+    return {"msg": "Welcome allowed user"}
+
+
+@app.get("/without-credentials")
+async def check_credentials():
+     return {"msg": "Welcome all"}
+
+#=====================================================================
+
+@app.post("/books/create-book")
+async def create_book(title = Form(..., examples=['Title']),
+                    author = Form(..., examples=['Author']),
+                    description = Form(..., examples=['Description']),
+                    file: UploadFile = File(...),
+                    user = Depends(validate_token_and_role(["admin"]))
+                    ):
+    return await books_handler.upload_book(database, title, author, description, file)
+
+@app.get("/books/get-book/{book_id}")
+async def get_book(book_id: int,
+                   user = Depends(validate_token_and_role(["user", "admin", "aproved_user"])) 
+                   ):
+    return await books_handler.get_book(book_id, database)
+
+@app.get("/books/download-book/{book_id}")
+async def download_book(book_id: int,
+                   user = Depends(validate_token_and_role(["user", "admin", "aproved_user"])) 
+                   ):
+    return await books_handler.download_book(book_id, database)
+
+@app.delete("/books/delete-book/{book_id}")
+async def delete_book(book_id: int,
+                   user = Depends(validate_token_and_role(["admin"])) 
+                   ):
+    return await books_handler.delete_book(book_id, database)
+
+@app.put("/books/update-book/{book_id}")
+async def update_book(book_id: int,
+                      title = Form(None, examples=['newTitle']),
+                      author = Form(None, examples=['newAuthor']),
+                      description = Form(None, examples=['newDescription']),
+                   user = Depends(validate_token_and_role(["admin"])) 
+                   ):
+    return await books_handler.update_book(book_id, database, title, author, description)

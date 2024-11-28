@@ -4,7 +4,7 @@ class UserCreate(BaseModel):
     name: str = Field(..., example="user1")
     email: str = Field(..., example="user1@example.com")
     password: str = Field(..., example="password")
-
+    
 class UserUpdate(BaseModel):
     oldEmail: str = Field(..., example="olduser1@example.com")
     oldPassword: str = Field(..., example="password")

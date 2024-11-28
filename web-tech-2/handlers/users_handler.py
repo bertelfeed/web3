@@ -12,10 +12,10 @@ async def create_user(user: UserCreate, db: Database, role: UserRole):
     existing_user = await db.fetch_one(query)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-
+    
     hashed_password = hash_password(user.password)
     pwd_hash = hashed_password.decode('utf-8')
-
+    
     query = insert(users).values(name=user.name, 
                                 email=user.email, 
                                 hashed_password=pwd_hash,
@@ -50,8 +50,9 @@ async def update_user(user: UserUpdate, db: Database):
             await db.execute(query)
             return {"old info":{"name": result.name, "email": result.email},
                     "new info":{"name": user.newName, "email": user.newEmail, "role": user.newRole}}
-            raise HTTPException(status_code=401, detail="User or password not correct")
+        raise HTTPException(status_code=401, detail="User or password not correct")
     raise HTTPException(status_code=400, detail="No user found")
+
 async def authorize_user(user: UserAuthorize, db: Database):
     query = users.select().where(users.c.email == user.email)
     existing_user = await db.fetch_one(query)
